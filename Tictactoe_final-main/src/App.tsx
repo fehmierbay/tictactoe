@@ -5,12 +5,10 @@ import TicTacToe from './TicTacToe';
 import Login from './Login';
 
 /*
-	This file is the "starter motor": It places a rolling "please wait" circle on the screen, requests the
-	settings from the server and once the settings have arrived starts the actual application.
-	See how to implement the "please wait" indicator. This is one of the many ways to do it. It is a practical
-	requirement to a lot of apps.
-	...unfortunately, in the case of this app the circle will probably not be visible for more than an eyeblink
-	(if that...) you can naturally try it by commenting out the fetch :-).
+	This component initializes the application by displaying a loading indicator
+  while fetching configuration data from the server. Once the data is retrieved,
+  it determines the initial view of the application.
+  Note: In most cases, the loading spinner will appear very briefly.
 */
 
 let config : any;
