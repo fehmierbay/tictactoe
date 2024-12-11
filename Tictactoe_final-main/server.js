@@ -1,96 +1,98 @@
 const WebSocket = require('ws');
 
-const wss = new WebSocket.Server({ port: 8080 });
+const server = new WebSocket.Server({ port: 8080 });
 
-let users = {}; // 在线用户
-let games = {}; // 游戏状态
+const connectedClients = {}; // Online clients
+const gameSessions = {}; // Active games
 
-wss.on('connection', (ws) => {
-  let currentUserId = null; 
+server.on('connection', (socket) => {
+  let activeUserId = null;
 
-  ws.on('message', async (message) => {
-    const data = JSON.parse(message);
-    console.log('Received message:', data);
+  socket.on('message', async (message) => {
+    const receivedData = JSON.parse(message);
+    console.log('Message received:', receivedData);
 
-    switch (data.type) {
+    switch (receivedData.type) {
       case 'login': {
+        connectedClients[receivedData.uid] = {
+          socket,
+          email: receivedData.email,
+        };
+        activeUserId = receivedData.uid;
 
-        users[data.uid] = { ws, email: data.email };
-        currentUserId = data.uid;
-
-        ws.send(
+        socket.send(
           JSON.stringify({
             type: 'loginSuccess',
             message: 'Login successful',
-            currentUser: { uid: data.uid, email: data.email },
-            users: Object.entries(users).map(([uid, user]) => ({
+            currentUser: { uid: receivedData.uid, email: receivedData.email },
+            users: Object.keys(connectedClients).map((uid) => ({
               uid,
-              email: user.email,
+              email: connectedClients[uid].email,
             })),
           })
         );
-        console.log('Sending logged in user:', data.email);
-        broadcastUpdateUsers();
+        console.log('User logged in:', receivedData.email);
+        notifyAllUsers();
         break;
       }
 
       case 'startGame': {
+        const { playerX, playerO, gridWidth, gridHeight, userX, userO } = receivedData;
 
-        const { uidx, uido, sizex, sizey, playerX, playerO } = data;
         try {
           const response = await fetch('http://localhost:12380/startGame.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ uidx, uido, sizex, sizey }),
+            body: JSON.stringify({ playerX, playerO, gridWidth, gridHeight }),
           });
+
           const result = await response.json();
 
           if (result.success) {
             const gameId = result.gameId;
-            console.log(gameId);
 
-            games[gameId] = {
-              uidx,
-              uido,
-              sizex,
-              sizey,
+            gameSessions[gameId] = {
               playerX,
               playerO,
-              board: Array(sizex * sizey).fill(null),
-              currentPlayer: uidx,
+              gridWidth,
+              gridHeight,
+              board: Array(gridWidth * gridHeight).fill(null),
+              turn: playerX,
             };
 
-            [uidx, uido].forEach((uid) => {
-              if (users[uid] && users[uid].ws.readyState === WebSocket.OPEN) {
-                users[uid].ws.send(
+            [playerX, playerO].forEach((player) => {
+              if (
+                connectedClients[player] &&
+                connectedClients[player].socket.readyState === WebSocket.OPEN
+              ) {
+                connectedClients[player].socket.send(
                   JSON.stringify({
-                    type: 'gameStarted',
+                    type: 'gameInitialized',
                     gameId,
-                    playerX: uidx,
-                    playerO: uido,
+                    playerX,
+                    playerO,
                     opponent: {
-                      uid: uid === uidx ? uido : uidx,
-                      email: users[uid === uidx ? uido : uidx].email,
+                      uid: player === playerX ? playerO : playerX,
+                      email: connectedClients[player === playerX ? playerO : playerX]?.email,
                     },
                   })
                 );
-                console.log('Game started:', gameId);
               }
             });
           } else {
-            ws.send(
+            socket.send(
               JSON.stringify({
                 type: 'error',
-                message: result.message || 'Failed to start game',
+                message: result.message || 'Failed to initialize game',
               })
             );
           }
-        } catch (error) {
-          console.error('Error starting game:', error);
-          ws.send(
+        } catch (err) {
+          console.error('Error while starting game:', err);
+          socket.send(
             JSON.stringify({
               type: 'error',
-              message: 'Server error while starting game',
+              message: 'Server error during game initialization',
             })
           );
         }
@@ -98,92 +100,81 @@ wss.on('connection', (ws) => {
       }
 
       case 'makeMove': {
-        const { gameId, x, y, player } = data;
-        const game = games[gameId];
+        const { gameId, x, y, player } = receivedData;
+        const session = gameSessions[gameId];
 
-        console.log(`Received move for gameId: ${gameId}`);
-      
-        if (!game) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Game not found' }));
+        if (!session) {
+          socket.send(JSON.stringify({ type: 'error', message: 'Game session not found' }));
           return;
         }
 
+        const boardIndex = y * session.gridWidth + x;
 
-      
-        const index = y * game.sizex + x;
-      
-        if (index < 0 || index >= game.board.length || game.board[index] !== null) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Invalid move' }));
+        if (
+          boardIndex < 0 ||
+          boardIndex >= session.board.length ||
+          session.board[boardIndex] !== null
+        ) {
+          socket.send(JSON.stringify({ type: 'error', message: 'Invalid move' }));
           return;
         }
-      
-        game.board[index] = player;
-        game.currentPlayer = game.currentPlayer === game.uidx ? game.uidx : game.uido;
-      
-        [game.uidx, game.uido].forEach(playerId => {
-          if (users[playerId]) {
-            users[playerId].ws.send(JSON.stringify({
-              type: 'updateBoard',
-              gameId,
-              currentPlayer: game.currentPlayer,
-              board: game.board,
-            }));
+
+        session.board[boardIndex] = player;
+        session.turn = session.turn === session.playerX ? session.playerO : session.playerX;
+
+        [session.playerX, session.playerO].forEach((userId) => {
+          if (connectedClients[userId]) {
+            connectedClients[userId].socket.send(
+              JSON.stringify({
+                type: 'boardUpdated',
+                gameId,
+                turn: session.turn,
+                board: session.board,
+              })
+            );
           }
         });
         break;
       }
 
       case 'logout': {
-        // 用户登出
-        delete users[data.uid];
-        broadcastUpdateUsers();
+        if (connectedClients[receivedData.uid]) {
+          delete connectedClients[receivedData.uid];
+        }
+        notifyAllUsers();
         break;
       }
 
       default: {
-        console.log('Unknown message type:', data.type);
+        console.log('Unknown message type:', receivedData.type);
         break;
       }
     }
   });
 
-  ws.on('close', () => {
-    if (currentUserId && users[currentUserId]) {
-      delete users[currentUserId];
-      broadcastUpdateUsers();
+  socket.on('close', () => {
+    if (activeUserId && connectedClients[activeUserId]) {
+      delete connectedClients[activeUserId];
+      notifyAllUsers();
     }
   });
 });
 
-
-function broadcast(data, recipients = null) {
-  if (recipients) {
-    recipients.forEach((uid) => {
-      if (users[uid] && users[uid].ws.readyState === WebSocket.OPEN) {
-        users[uid].ws.send(JSON.stringify(data));
-      }
-    });
-  } else {
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(data));
-      }
-    });
-  }
-}
-
-function broadcastUpdateUsers() {
-  const userList = Object.entries(users).map(([uid, user]) => ({
+function notifyAllUsers() {
+  const userList = Object.keys(connectedClients).map((uid) => ({
     uid,
-    email: user.email,
+    email: connectedClients[uid].email,
   }));
-  Object.values(users).forEach((user) => {
-    user.ws.send(
-      JSON.stringify({
-        type: 'updateUsers',
-        users: userList,
-      })
-    );
+
+  Object.values(connectedClients).forEach(({ socket }) => {
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(
+        JSON.stringify({
+          type: 'usersUpdated',
+          users: userList,
+        })
+      );
+    }
   });
 }
 
