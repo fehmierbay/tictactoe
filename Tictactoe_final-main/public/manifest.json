@@ -1,25 +1,25 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "React App",  // Uygulamanın kısa adı (mobilde ve başlatma ekranında görünecek)
+  "name": "Create React App Sample",  // Uygulamanın tam adı
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "favicon.ico",  // İkon dosyasının yolu
+      "sizes": "64x64 32x32 24x24 16x16",  // Farklı boyutlarda ikonlar
+      "type": "image/x-icon"  // İkon dosyasının türü
     },
     {
-      "src": "logo192.png",
-      "type": "image/png",
-      "sizes": "192x192"
+      "src": "logo192.png",  // Uygulama için 192x192 boyutunda bir ikon
+      "type": "image/png",  // PNG formatında ikon
+      "sizes": "192x192"  // İkon boyutu
     },
     {
-      "src": "logo512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "src": "logo512.png",  // Uygulama için 512x512 boyutunda bir ikon
+      "type": "image/png",  // PNG formatında ikon
+      "sizes": "512x512"  // İkon boyutu
     }
   ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "start_url": ".",  // Uygulama başladığında açılacak URL (genellikle ana sayfa)
+  "display": "standalone",  // Uygulamanın tam ekran modu olarak çalışması sağlanır
+  "theme_color": "#4A90E2",  // Uygulamanın teması için ana renk (genellikle başlık çubuğu için)
+  "background_color": "#F4F6F8"  // Uygulama arka plan rengi
 }
