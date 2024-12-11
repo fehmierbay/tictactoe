@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useContext } from 'react';
 
 interface GameProps {
-  //ws: WebSocket;
   gameId: string;
   user: User;
   opponent: User;
@@ -20,23 +19,26 @@ interface User {
   gid: number | null;
 }
 
-function showError(e : any)
-{
-	alert("So, then... you got this error. Kind of weird you got this far and still see this, but let's see what we're going to do about it next week. In the meanwhile, open up the network logs and see what they say, because at the moment your teacher wants to know too :-D.");
+function showError(e: any) {
+  alert("Oops! Something went wrong. We're working on it, but for now, check your network logs and let us know if you encounter this issue again.");
 }
 
-function handleMove(j : any)
-{
-	alert("We'll handle the moves next week, just finalize the sign-in and top status bar first :-). This component has been created already this week mainly to allow you to see a change occur after signing in and also as a hands-on-example of separating the app into components. Once we finish working on this thing you actually enter the game via the \"Lobby\".");
+function handleMove(j: any) {
+  alert("Move handling is on the to-do list for next week. For now, complete the login and top status bar first. This component was built to demonstrate updates after signing in, as part of splitting the app into components. The game entry will come after finishing the setup.");
 }
 
-function sendMove(mx: number, my: number, c: any)
-{
-	let obj = { x : mx, y : my};
-	fetch(c.serviceroot+c.receiver, { method : "POST", mode : "cors", credentials : "include", 
-							headers: {'Content-Type': 'text/plain'}, 
-							body : JSON.stringify(obj) }).
-								then( r => r.json() ).then( j => handleMove(j) ).catch( e => showError(e));
+function sendMove(mx: number, my: number, c: any) {
+  let obj = { x: mx, y: my };
+  fetch(c.serviceroot + c.receiver, { 
+    method: "POST", 
+    mode: "cors", 
+    credentials: "include", 
+    headers: { 'Content-Type': 'text/plain' }, 
+    body: JSON.stringify(obj) 
+  })
+    .then(r => r.json())
+    .then(j => handleMove(j))
+    .catch(e => showError(e));
 }
 
 function drawPartialX(context: CanvasRenderingContext2D, x: number, y: number, size: number, progress: number) {
@@ -58,7 +60,7 @@ function drawGrid(context: CanvasRenderingContext2D, xlines: number, ylines: num
   const squareSize = Math.min(width / xlines, height / ylines);
 
   if (squareSize < 10) {
-    alert("The size of a square would be less than 10 pixels in either direction.");
+    alert("The grid squares are too small to display clearly. Try resizing the grid or increasing the canvas size.");
     return;
   }
 
@@ -101,12 +103,12 @@ function animateCell(context: CanvasRenderingContext2D, x: number, y: number, si
 }
 
 const Game: React.FC<GameProps> = ({
-  gameId, user, opponent, board, sizex, sizey, setBoard, uidx, uido 
+  gameId, user, opponent, board, sizex, sizey, setBoard, uidx, uido
 }) => {
   const cref = useRef<HTMLCanvasElement>(null);
   const [drawnCells, setDrawnCells] = useState(new Set<number>());
   const [currentTurn, setCurrentTurn] = useState<number>(uidx);
-  
+
   useEffect(() => {
     const pollGameState = async () => {
       try {
