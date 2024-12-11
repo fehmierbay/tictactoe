@@ -1,13 +1,15 @@
+/* Global Styles */
 body {
-  margin: 0;
+  margin: 0; /* Sayfa margin'ini sıfırlıyor */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 
+    sans-serif; /* Font ailesi, modern web tarayıcılarında genellikle bulunan sistem yazı tiplerine odaklanır */
+  -webkit-font-smoothing: antialiased; /* Webkit tabanlı tarayıcılar için font düzeltmesi */
+  -moz-osx-font-smoothing: grayscale; /* Firefox ve OSX için font düzeltmesi */
 }
 
+/* Code elements */
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', 
+    monospace; /* Kod yazı tipi: programlama için uygun, okunabilir yazı tipleri */
 }
