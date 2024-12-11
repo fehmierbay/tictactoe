@@ -231,7 +231,7 @@ const Game: React.FC<GameProps> = ({
         onClick={handleCellClick} 
       />
       <audio autoPlay loop>
-        <source src="http://localhost:12380/contra.mp3" type="audio/mpeg" />
+        <source src="http://localhost:12380/attack.mp3" type="audio/mpeg" />
       </audio>
     </div>
   );
